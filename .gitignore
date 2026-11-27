@@ -1,0 +1,17 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Generated output (mock outbox, audit log)
+outputs/
+
+# Personal Claude Code settings (.claude/settings.json IS committed)
+.claude/settings.local.json
