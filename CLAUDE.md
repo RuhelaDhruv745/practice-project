@@ -90,7 +90,16 @@ Owned paths only; tests and ruff pass; contracts used, not redefined; no secrets
 personal data; PR includes the completion report from your member spec.
 
 ## Current status (update when it changes)
-- Baseline: contracts, policy YAML + validated loader (`policy_engine/config_loader.py`),
-  docs and scaffolding. No endpoints, generator, validators or UI exist yet.
+- Sprint 1 merged (PRs #5-#9): backend foundation (health, customers, seed, error format),
+  policy `classify`/`decide`, AI draft generator (mock/Claude/Groq), Streamlit reviewer
+  app on a fake API, synthetic customers and labelled scenarios (19/19 labels match the
+  engine).
+- Sprint 2 in progress: draft validators, remaining endpoints + audit + outbox, AI
+  evaluation, React dashboard, Docker/Compose/Azure plan.
+- Accepted exception: the backend reads policy version labels via
+  `policy_engine.config_loader.load_policy().versions` (read-only metadata, no business
+  logic). The `PolicyEngine` Protocol is unchanged.
+- Env names: `ANTHROPIC_*` / `GROQ_*` are canonical; `LLM_API_KEY`, `LLM_MODEL`,
+  `LLM_BASE_URL` are optional overrides. No key means the mock provider.
 - Resolved: payment reminders do not require marketing consent
   (`reminders_require_marketing_consent: false`), frequency rules still apply.
