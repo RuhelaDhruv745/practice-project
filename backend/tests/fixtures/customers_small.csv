@@ -1,0 +1,5 @@
+customer_id,first_name,consent_marketing,plan,months_active,activity_score_30d,activity_score_prev_30d,on_time_payments_12m,bill_status,days_overdue,amount_due,due_date,last_contacted_days_ago
+CUST-001,Asha,true,Unlimited 599,26,82.5,80,12,paid,0,0.00,,45
+CUST-002,Ravi,true,Value 299,14,40,75,10,due,0,299.00,2026-01-20,
+CUST-003,Meera,false,Basic 199,8,5,12,6,overdue,12,2000.00,2026-01-03,90
+CUST-004,Karan,true,Value 299,3,60,58,3,paid,4,0.00,,2
