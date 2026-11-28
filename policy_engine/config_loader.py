@@ -22,7 +22,7 @@ from pydantic import (
     model_validator,
 )
 
-from contracts.enums import Channel, OfferUnit, SegmentName
+from contracts.enums import Channel, FindingCode, OfferUnit, SegmentName, Severity
 
 DEFAULT_CONFIG_DIR = Path(__file__).resolve().parent.parent / "data" / "policies"
 
@@ -203,6 +203,44 @@ class BlockedTermsConfig(_Strict):
         return self
 
 
+# --- validation.yaml ---------------------------------------------------------
+
+# DraftContent (contracts.models) caps the fields; config may be stricter, not looser.
+_CONTRACT_SUBJECT_MAX = 150
+_CONTRACT_BODY_MAX = 4000
+
+
+class ValidationLimits(_Strict):
+    subject_max_chars: PositiveInt = Field(le=_CONTRACT_SUBJECT_MAX)
+    body_max_chars: PositiveInt = Field(le=_CONTRACT_BODY_MAX)
+
+
+def _unique_non_empty(values: list[str], what: str) -> None:
+    normalised = [value.strip().lower() for value in values]
+    if any(not value for value in normalised):
+        raise ValueError(f"{what} must not be empty")
+    if len(normalised) != len(set(normalised)):
+        raise ValueError(f"duplicate {what}")
+
+
+class ValidationConfig(_Strict):
+    version: str
+    limits: ValidationLimits
+    currency_markers: list[str] = Field(min_length=1)
+    offer_claim_terms: list[str] = Field(min_length=1)
+    phone_min_digits: int = Field(ge=7, le=15)
+    severities: dict[FindingCode, Severity]
+
+    @model_validator(mode="after")
+    def _complete(self) -> ValidationConfig:
+        _unique_non_empty(self.currency_markers, "currency marker")
+        _unique_non_empty(self.offer_claim_terms, "offer claim term")
+        missing = set(FindingCode) - set(self.severities)
+        if missing:
+            raise ValueError(f"no severity for finding codes: {sorted(missing)}")
+        return self
+
+
 # --- whole policy ------------------------------------------------------------
 
 _FILES: dict[str, type[_Strict]] = {
@@ -212,6 +250,7 @@ _FILES: dict[str, type[_Strict]] = {
     "offers": OfferConfig,
     "reminders": ReminderConfig,
     "blocked_terms": BlockedTermsConfig,
+    "validation": ValidationConfig,
 }
 
 
@@ -222,6 +261,7 @@ class Policy(_Strict):
     offers: OfferConfig
     reminders: ReminderConfig
     blocked_terms: BlockedTermsConfig
+    validation: ValidationConfig
 
     @model_validator(mode="after")
     def _cross_file_references(self) -> Policy:

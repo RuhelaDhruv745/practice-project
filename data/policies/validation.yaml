@@ -1,0 +1,63 @@
+# Draft validation (FR-07). The checks live in policy_engine/compliance; the word
+# lists, limits and severities live here. Blocked terms are in blocked_terms.yaml and
+# the support path (and therefore the only permitted phone number) in reminders.yaml.
+version: "1.0"
+
+# Upper bounds for the draft fields. They must not exceed the DraftContent contract
+# (subject 150, body 4000); a field that is empty after trimming is always invalid.
+limits:
+  subject_max_chars: 150
+  body_max_chars: 4000
+
+# Words that mark a number as money when written next to it ("INR 749", "Rs. 749",
+# "749 rupees"). Matched case-insensitively.
+currency_markers:
+  - INR
+  - Rs.
+  - Rs
+  - rupee
+  - rupees
+  - "₹"
+
+# Offer or discount language. When the verified facts carry no offer, any of these
+# (whole word or phrase, case-insensitive) is an unsupported claim.
+offer_claim_terms:
+  - offer
+  - offers
+  - discount
+  - discounts
+  - discounted
+  - cashback
+  - cash back
+  - voucher
+  - vouchers
+  - coupon
+  - coupons
+  - promo
+  - promo code
+  - promotional
+  - bonus
+  - percent off
+  - per cent off
+  - special deal
+  - free data
+  - for free
+  - free of charge
+
+# A run of at least this many digits (spaces, hyphens, brackets allowed between
+# them) is treated as a phone number. Only the number in the support path is allowed.
+phone_min_digits: 10
+
+# Severity of every finding code. A blocking finding blocks approval.
+severities:
+  schema_invalid: blocking
+  amount_mismatch: blocking
+  date_mismatch: blocking
+  unknown_offer: blocking
+  ineligible_offer: blocking
+  unsupported_claim: blocking
+  blocked_term: blocking
+  missing_support_path: blocking
+  consent_gap: blocking
+  duplicate_outreach: blocking
+  sensitive_data: blocking

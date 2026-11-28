@@ -211,7 +211,7 @@ def test_injection_in_first_name_has_no_effect(engine, make_profile, injection) 
         assert dumped == plain
 
 
-def test_validate_not_implemented_yet(engine, make_profile) -> None:
+def test_validate_is_wired_to_compliance(engine, make_profile) -> None:
     decision = engine.decide(make_profile())
-    with pytest.raises(NotImplementedError):
-        engine.validate(DraftContent(subject="Hi", body="Thanks"), decision)
+    result = engine.validate(DraftContent(subject="Hi", body="Thanks"), decision)
+    assert result.passed and result.findings == []
