@@ -1,0 +1,20 @@
+# Terms that must never appear in a draft. Matched case-insensitively as whole
+# words or phrases, so "court" does not match "courteous".
+version: "1.0"
+
+terms:
+  - guaranteed
+  - act now
+  - last chance
+  - limited time only
+  - legal action
+  - lawsuit
+  - court
+  - police
+  - blacklist
+  - disconnect immediately
+  - you failed
+  - irresponsible
+  - shame
+  - free money
+  - risk-free

@@ -1,0 +1,36 @@
+# Approved objective and tone per segment.
+version: "1.0"
+
+# Tone name -> wording guidance passed to the writer model.
+tones:
+  warm_appreciative: Warm and grateful. Thank the customer. No sales push.
+  celebratory: Upbeat and appreciative. Present the reward as recognition.
+  friendly_helpful: Friendly and helpful. Remind them of value, no pressure.
+  gentle: Gentle and low-pressure. Welcome them back without guilt.
+  courteous: Polite, assumes an oversight. Brief and helpful.
+  firm_respectful: Clear and direct about the overdue amount, still respectful.
+  final_respectful: Serious and clear that this is a final notice, never threatening.
+
+# For payment_reminder the tone below is the fallback; the reminder stage tone
+# (config/reminders.yaml) takes precedence.
+strategies:
+  consistent:
+    objective: thank
+    tone: warm_appreciative
+    offer_allowed: false
+  loyalty_candidate:
+    objective: reward
+    tone: celebratory
+    offer_allowed: true
+  declining:
+    objective: re_engage
+    tone: friendly_helpful
+    offer_allowed: true
+  dormant:
+    objective: win_back
+    tone: gentle
+    offer_allowed: true
+  payment_reminder:
+    objective: collect_politely
+    tone: courteous
+    offer_allowed: false
