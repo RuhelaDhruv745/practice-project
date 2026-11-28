@@ -1,4 +1,4 @@
-"""Load and validate policy configuration from config/*.yaml.
+"""Load and validate policy configuration from data/policies/*.yaml.
 
 Policy (thresholds, segments, offers, tones, reminder stages, blocked terms) lives
 in YAML so a policy owner can change it without code edits. Loading fails fast on
@@ -8,8 +8,9 @@ any unknown key, unknown reference or inconsistent range.
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
-from typing import Any, Literal, get_args
+from typing import Any
 
 import yaml
 from pydantic import (
@@ -21,14 +22,13 @@ from pydantic import (
     model_validator,
 )
 
-DEFAULT_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+from contracts.enums import Channel, OfferUnit, SegmentName
 
-# Segment rules are implemented in code, so the set of segment names is fixed here.
-# Config controls their thresholds, priority, strategy and offers.
-SegmentName = Literal[
-    "consistent", "loyalty_candidate", "declining", "dormant", "payment_reminder"
-]
-SEGMENT_NAMES: frozenset[str] = frozenset(get_args(SegmentName))
+DEFAULT_CONFIG_DIR = Path(__file__).resolve().parent.parent / "data" / "policies"
+
+# Segment rules are implemented in code, so the segment names are a fixed contract
+# (contracts.enums.SegmentName). Config controls thresholds, priority, strategy, offers.
+SEGMENT_NAMES: frozenset[SegmentName] = frozenset(SegmentName)
 
 
 class ConfigError(ValueError):
@@ -117,12 +117,12 @@ class StrategyConfig(_Strict):
 class Offer(_Strict):
     offer_id: str = Field(pattern=r"^[A-Z0-9]+(-[A-Z0-9]+)*$")
     description: str = Field(min_length=1)
-    value: float = Field(gt=0)
-    unit: Literal["percent", "inr", "gb"]
+    value: Decimal = Field(gt=0)
+    unit: OfferUnit
     expiry: date
     allowed_segments: list[SegmentName] = Field(min_length=1)
     min_months_active: int = Field(ge=0)
-    channel: Literal["email", "sms"]
+    channel: Channel
 
     @model_validator(mode="after")
     def _percent_at_most_100(self) -> Offer:

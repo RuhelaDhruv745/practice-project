@@ -1,7 +1,6 @@
-pandas
-pydantic
-PyYAML
-streamlit
-pytest
-openai
-python-dotenv
+# Architect-owned aggregator. Each module owns its own requirements file.
+-r contracts/requirements.txt
+-r policy_engine/requirements.txt
+-r ai_engine/requirements.txt
+-r backend/requirements.txt
+-r reviewer_ui/requirements.txt
