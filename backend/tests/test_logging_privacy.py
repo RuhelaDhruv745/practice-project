@@ -75,3 +75,42 @@ def test_redacting_filter_rewrites_record() -> None:
 
     assert RedactingFilter().filter(record) is True
     assert "@" not in record.getMessage()
+
+
+def test_uvicorn_access_record_keeps_tuple_args_and_formats() -> None:
+    """Regression: the filter used to set ``args = None``, which made uvicorn's
+    AccessFormatter fail on every request when it unpacked the args."""
+    from uvicorn.logging import AccessFormatter
+
+    record = logging.LogRecord(
+        "uvicorn.access",
+        logging.INFO,
+        __file__,
+        1,
+        '%s - "%s %s HTTP/%s" %d',
+        ("127.0.0.1:1", "GET", "/api/customers/CUST-001?x=a@b.com", "1.1", 200),
+        None,
+    )
+
+    assert RedactingFilter().filter(record) is True
+    assert isinstance(record.args, tuple) and len(record.args) == 5
+    formatter = AccessFormatter(
+        fmt='%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
+        use_colors=False,
+    )
+    output = formatter.format(record)
+
+    assert "@" not in output
+    assert "/api/customers/CUST-001" in output
+    assert "200" in output
+
+
+def test_redacting_filter_keeps_mapping_args() -> None:
+    record = logging.LogRecord(
+        "backend.test", logging.INFO, __file__, 1, "user %(who)s n=%(n)d", None, None
+    )
+    record.args = {"who": "x@y.org", "n": 3}
+
+    RedactingFilter().filter(record)
+
+    assert record.getMessage() == "user [redacted-email] n=3"

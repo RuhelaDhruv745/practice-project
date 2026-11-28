@@ -29,10 +29,34 @@ def redact(text: str) -> str:
     return _AT_RE.sub("[at]", text)
 
 
+def _redact_arg(value: object) -> object:
+    """Numbers and booleans pass through unchanged so ``%d`` formatting still works.
+    Every other value is redacted as text."""
+    if value is None or isinstance(value, int | float):
+        return value
+    return redact(str(value))
+
+
 class RedactingFilter(logging.Filter):
+    """Redacts the message template and each argument in place.
+
+    ``record.args`` keeps its shape (tuple or mapping) because some formatters
+    unpack it. For example, uvicorn's ``AccessFormatter`` unpacks
+    ``(client_addr, method, full_path, http_version, status_code)``.
+    """
+
     def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = redact(record.getMessage())
-        record.args = None
+        if not isinstance(record.msg, str):
+            # Non-string message objects are rendered once, then redacted.
+            record.msg = redact(record.getMessage())
+            record.args = ()
+            return True
+        record.msg = redact(record.msg)
+        args = record.args
+        if isinstance(args, tuple):
+            record.args = tuple(_redact_arg(a) for a in args)
+        elif isinstance(args, dict):
+            record.args = {k: _redact_arg(v) for k, v in args.items()}
         return True
 
 
