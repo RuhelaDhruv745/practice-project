@@ -70,3 +70,42 @@ jobs:
         run: npm test -- --run
       - if: hashFiles('frontend/package.json') != ''
         run: npm run build
+
+  docker:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    needs: python
+    # No registry login, no push, no secrets: images are built and run locally on the
+    # runner with LLM_PROVIDER=mock, then removed.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose config -q
+
+      - name: Build backend and reviewer_ui images
+        run: docker compose build backend reviewer_ui
+
+      - name: Start stack and wait for health checks
+        env:
+          LLM_PROVIDER: mock
+        run: docker compose up -d --wait --wait-timeout 180 backend reviewer_ui
+
+      - name: Smoke test
+        env:
+          # TODO(integration): set to "1" once backend/app/main.py wires the real
+          # PolicyEngine; until then /api/customers returns 500 (NotWiredError).
+          SMOKE_STRICT: "0"
+        run: sh scripts/docker_smoke.sh http://localhost:8000 http://localhost:8501
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Build frontend image (once frontend/ exists)
+        if: hashFiles('frontend/package.json') != ''
+        run: docker compose --profile frontend build frontend
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down
