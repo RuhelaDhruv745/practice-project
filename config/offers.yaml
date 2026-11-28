@@ -1,0 +1,31 @@
+# Approved offers. Eligibility (segment, tenure, expiry, channel) is checked in code.
+# Descriptions avoid numbers so the only number in an offer is its value.
+version: "1.0"
+
+offers:
+  - offer_id: LOYAL-10GB
+    description: bonus data added to your current plan
+    value: 10
+    unit: gb
+    expiry: 2027-01-31
+    allowed_segments: [loyalty_candidate]
+    min_months_active: 24
+    channel: email
+
+  - offer_id: REENGAGE-20
+    description: off your next add-on pack
+    value: 20
+    unit: percent
+    expiry: 2026-12-31
+    allowed_segments: [declining]
+    min_months_active: 3
+    channel: email
+
+  - offer_id: WINBACK-300
+    description: off your next recharge
+    value: 300
+    unit: inr
+    expiry: 2027-01-15
+    allowed_segments: [dormant]
+    min_months_active: 6
+    channel: email

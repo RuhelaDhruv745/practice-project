@@ -1,0 +1,24 @@
+# Segment thresholds. The rules that use them live in code; the numbers live here.
+version: "1.0"
+
+# When a customer matches several segments, the first one in this list is the
+# primary segment that drives the message. Must list every segment once.
+priority:
+  - payment_reminder
+  - dormant
+  - declining
+  - loyalty_candidate
+  - consistent
+
+thresholds:
+  # Declining: activity_score_30d is at least this % below activity_score_prev_30d.
+  declining_min_drop_pct: 30
+  # Dormant: activity_score_30d strictly below this value.
+  dormant_max_activity: 15
+  # Loyalty candidate: all three minimums met and no overdue bill.
+  loyalty_min_months_active: 24
+  loyalty_min_on_time_payments: 11
+  loyalty_min_activity: 60
+  # Consistent: steady activity and payments on time.
+  consistent_min_on_time_payments: 11
+  consistent_min_activity: 40

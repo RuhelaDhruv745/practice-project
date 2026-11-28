@@ -1,0 +1,15 @@
+# General policy. Every value here is an editable assumption, not a learned fact.
+version: "1.0"
+
+# Fixed "today" for every rule (expiry, overdue days, contact gaps), so reruns
+# give the same segments and checks.
+as_of_date: 2026-11-28
+
+currency: INR
+
+contact:
+  # Block outreach if the customer was contacted fewer than this many days ago.
+  min_days_between_contacts: 14
+  # A payment reminder is a service message, not marketing. When false, missing
+  # marketing consent does not block a reminder (frequency rules still apply).
+  reminders_require_marketing_consent: false

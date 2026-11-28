@@ -1,0 +1,22 @@
+# Payment reminder stages by days overdue. Ranges must start at 1, be contiguous,
+# and only the last stage may be open-ended (max_days: null).
+version: "1.0"
+
+# Every reminder draft must contain this support and dispute path (synthetic number).
+support_path: >-
+  If you have already paid or believe this bill is wrong, call support on
+  1800-000-0000 or reply to this email to raise a dispute.
+
+stages:
+  - name: courteous
+    min_days: 1
+    max_days: 7
+    tone: courteous
+  - name: firm
+    min_days: 8
+    max_days: 21
+    tone: firm_respectful
+  - name: final_notice
+    min_days: 22
+    max_days: null
+    tone: final_respectful
