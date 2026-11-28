@@ -36,6 +36,7 @@ from policy_engine.billing.reminders import (
     reminder_stage,
 )
 from policy_engine.classification.segmenter import classify_profile
+from policy_engine.compliance.validator import validate_draft
 from policy_engine.config_loader import DEFAULT_CONFIG_DIR, Policy, load_policy
 from policy_engine.eligibility.offers import check_offers, select_offer
 from policy_engine.strategies.selector import select_strategy
@@ -117,9 +118,8 @@ class RuleBasedPolicyEngine:
     def validate(
         self, draft: DraftContent, decision: PolicyDecision
     ) -> ValidationResult:
-        raise NotImplementedError(
-            "draft validators (FR-07) are planned for Sprint 2 in policy_engine/compliance"
-        )
+        """Independent FR-07 checks; see ``policy_engine.compliance.validator``."""
+        return validate_draft(draft, decision, self.policy)
 
     def _consent_ok(
         self, profile: CustomerProfile, primary: SegmentName | None

@@ -39,6 +39,7 @@ def test_real_config_loads() -> None:
         "offers",
         "reminders",
         "blocked_terms",
+        "validation",
     }
     assert len(policy.offers.offers) == 3
     assert policy.strategies.strategies["consistent"].offer_allowed is False
@@ -115,6 +116,22 @@ def _duplicate_blocked_term(files: dict) -> None:
     files["blocked_terms"]["terms"].append("Guaranteed")
 
 
+def _missing_severity(files: dict) -> None:
+    del files["validation"]["severities"]["sensitive_data"]
+
+
+def _unknown_severity(files: dict) -> None:
+    files["validation"]["severities"]["blocked_term"] = "fatal"
+
+
+def _subject_limit_above_contract(files: dict) -> None:
+    files["validation"]["limits"]["subject_max_chars"] = 151
+
+
+def _duplicate_claim_term(files: dict) -> None:
+    files["validation"]["offer_claim_terms"].append("Discount")
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -133,6 +150,10 @@ def _duplicate_blocked_term(files: dict) -> None:
         _offer_for_no_offer_segment,
         _empty_blocked_term,
         _duplicate_blocked_term,
+        _missing_severity,
+        _unknown_severity,
+        _subject_limit_above_contract,
+        _duplicate_claim_term,
     ],
 )
 def test_invalid_config_is_rejected(tmp_path: Path, mutate: Mutator) -> None:

@@ -29,6 +29,7 @@ def test_default_profile_is_consistent(engine, make_profile) -> None:
         "offers",
         "reminders",
         "blocked_terms",
+        "validation",
     }
 
 
