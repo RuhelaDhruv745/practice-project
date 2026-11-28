@@ -26,3 +26,11 @@ outputs
 # Not needed at runtime
 .claude
 docs
+
+# Tests and fixtures are not shipped in runtime images
+tests
+**/tests
+data/fixtures
+.github
+infrastructure/azure
+scripts

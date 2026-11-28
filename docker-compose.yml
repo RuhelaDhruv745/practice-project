@@ -1,0 +1,64 @@
+# Local stack. Run from the repo root:  docker compose up --build
+#   backend      http://localhost:8000  (API, /api/health, /docs)
+#   reviewer_ui  http://localhost:8501  (Streamlit reviewer)
+#   frontend     http://localhost:8080  (React, opt-in: docker compose --profile frontend up --build)
+#
+# Secrets are never baked into images. The backend reads an optional local .env at
+# runtime; without it the backend runs with LLM_PROVIDER=mock (no API key needed).
+
+name: loyalty-assistant
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/backend.Dockerfile
+    image: loyalty-assistant/backend:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Interpolated from the shell or .env; defaults to the offline mock provider.
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      # Absolute path inside the container, on the named volume below.
+      DATABASE_URL: sqlite:////app/outputs/app.db
+      CORS_ORIGINS: http://localhost:8080,http://localhost:8501,http://localhost:5173
+    ports:
+      - "8000:8000"
+    volumes:
+      - app-data:/app/outputs
+    restart: unless-stopped
+
+  reviewer_ui:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/reviewer_ui.Dockerfile
+    image: loyalty-assistant/reviewer-ui:local
+    environment:
+      # Server-side calls from Streamlit go over the compose network.
+      API_BASE_URL: http://backend:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    profiles: [frontend]
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend.Dockerfile
+      args:
+        # The browser calls the API directly, so this is the host-visible URL.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    image: loyalty-assistant/frontend:local
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  app-data:
