@@ -1,7 +1,9 @@
 """App factory and module-level ``app`` for ``uvicorn backend.app.main:app``.
 
-``create_app`` takes its collaborators as arguments so tests inject fakes and the
-real ``PolicyEngine`` / ``DraftGenerator`` are wired here only, once they merge.
+``create_app`` takes its collaborators as arguments so tests inject fakes; the real
+``PolicyEngine`` / ``DraftGenerator`` are wired here only, for the module-level app.
+Configuration comes from the process environment only (pass the local env file to
+uvicorn with ``--env-file``); this module never opens it.
 """
 
 from __future__ import annotations
@@ -13,13 +15,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app import __version__
-from backend.app.api import customers, health
+from backend.app.api import audit, customers, health, pipeline, reviews
 from backend.app.core.logging import configure_logging
 from backend.app.core.settings import Settings
 from backend.app.database import create_db_engine, init_db, session_factory
 from backend.app.middleware.errors import register_error_handlers
 from backend.app.middleware.request_logging import register_request_logging
-from backend.app.services.unwired import UnwiredDraftGenerator, UnwiredPolicyEngine
 from contracts.interfaces import DraftGenerator, PolicyEngine
 
 
@@ -74,9 +75,23 @@ def create_app(
 
     app.include_router(health.router)
     app.include_router(customers.router)
+    app.include_router(pipeline.router)
+    app.include_router(reviews.router)
+    app.include_router(audit.router)
     return app
 
 
-# TODO(integration): replace the unwired stand-ins with the real PolicyEngine
-# (Member 3) and DraftGenerator (Member 2) once they merge to main.
-app = create_app(UnwiredPolicyEngine(), UnwiredDraftGenerator(), Settings.from_env())
+def build_default_app() -> FastAPI:
+    """Real implementations: rule-based policy engine and the LLM draft generator
+    (which uses its mock provider when no API key is configured)."""
+    from ai_engine.generation import LLMDraftGenerator
+    from policy_engine.engine import RuleBasedPolicyEngine
+
+    return create_app(
+        RuleBasedPolicyEngine.from_config_dir(),
+        LLMDraftGenerator(),
+        Settings.from_env(),
+    )
+
+
+app = build_default_app()
