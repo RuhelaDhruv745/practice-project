@@ -58,5 +58,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
     CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status == 200 else 1)"]
 
-# Seeding is idempotent (upsert), so it is safe on every start.
-CMD ["sh", "-c", "python -m backend.app.seed && exec uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"]
+# Seeding is idempotent (upsert), so it is safe on every start. uvicorn's own access
+# log is off: the backend's request-logging middleware (logger backend.access) already
+# logs every request, redacted.
+CMD ["sh", "-c", "python -m backend.app.seed && exec uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

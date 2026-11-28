@@ -69,6 +69,12 @@ validates the Compose file, builds `backend` and `reviewer_ui`, starts them with
 `docker compose up -d --wait`, runs `scripts/docker_smoke.sh`, builds the frontend image
 once `frontend/package.json` exists, and always runs `docker compose down`.
 
+`scripts/docker_smoke.sh` checks `/api/health`, the seeded customer
+`/api/customers/CUST-001`, `/api/customers` and Streamlit health. CI sets
+`SMOKE_STRICT=0` so a non-200 from `/api/customers` is only a warning: until the real
+`PolicyEngine` is wired into `backend/app/main.py` that endpoint returns 500
+(`NotWiredError`). Switch it back to strict once the wiring merges.
+
 ### Troubleshooting
 
 | Symptom | Fix |
