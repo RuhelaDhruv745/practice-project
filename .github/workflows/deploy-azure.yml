@@ -1,0 +1,112 @@
+# Manual Azure Container Apps deployment. NOT RUN YET.
+#
+# This workflow never runs automatically: the only trigger is workflow_dispatch, it
+# requires typing "deploy" as confirmation, and the `azure-demo` GitHub environment
+# must have required reviewers configured. Do not run it without explicit team
+# approval: it creates billable, public-facing Azure resources.
+#
+# Repository/environment secrets (names only, OIDC federated credential, no client
+# secret): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, and optionally
+# ANTHROPIC_API_KEY, GROQ_API_KEY. Repository variables: AZURE_RESOURCE_GROUP,
+# AZURE_ACR_NAME, AZURE_NAME_PREFIX.
+name: Deploy to Azure (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm the team approved this deployment'
+        required: true
+        type: string
+      llm_provider:
+        description: LLM provider for the backend
+        required: true
+        default: mock
+        type: choice
+        options: [mock, anthropic, groq]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build images and deploy Container Apps
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'deploy'
+    runs-on: ubuntu-latest
+    environment: azure-demo
+    env:
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      ACR: ${{ vars.AZURE_ACR_NAME }}
+      PREFIX: ${{ vars.AZURE_NAME_PREFIX }}
+      TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Tests must pass before deploying
+        env:
+          LLM_PROVIDER: mock
+        run: |
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m ruff check .
+          python -m pytest -q
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build backend and reviewer_ui images in ACR
+        run: |
+          az acr build -r "$ACR" -t "loyalty-assistant/backend:$TAG" \
+            -f infrastructure/docker/backend.Dockerfile .
+          az acr build -r "$ACR" -t "loyalty-assistant/reviewer-ui:$TAG" \
+            -f infrastructure/docker/reviewer_ui.Dockerfile .
+
+      - name: Build frontend image in ACR
+        id: frontend
+        if: hashFiles('frontend/package.json') != ''
+        run: |
+          domain="$(az containerapp env show -g "$RG" -n "$PREFIX-env" \
+            --query properties.defaultDomain -o tsv 2>/dev/null || true)"
+          if [ -z "$domain" ]; then
+            # First deployment: the backend URL is unknown until the environment
+            # exists. Deploy without the frontend now and rerun the workflow.
+            echo "::notice::Container Apps environment not found; skipping frontend this run."
+            exit 0
+          fi
+          az acr build -r "$ACR" -t "loyalty-assistant/frontend:$TAG" \
+            --build-arg "VITE_API_BASE_URL=https://$PREFIX-backend.$domain" \
+            -f infrastructure/docker/frontend.Dockerfile .
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Bicep template
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEPLOY_FRONTEND: ${{ steps.frontend.outputs.built == 'true' }}
+          LLM_PROVIDER: ${{ inputs.llm_provider }}
+        run: |
+          az deployment group create -g "$RG" \
+            -f infrastructure/azure/main.bicep \
+            -p namePrefix="$PREFIX" acrName="$ACR" imageTag="$TAG" \
+               llmProvider="$LLM_PROVIDER" \
+               deployFrontend="$DEPLOY_FRONTEND" \
+               anthropicApiKey="$ANTHROPIC_API_KEY" groqApiKey="$GROQ_API_KEY" \
+            --query properties.outputs -o json > /dev/null
+
+      - name: Smoke test
+        run: |
+          fqdn="$(az containerapp show -g "$RG" -n "$PREFIX-backend" \
+            --query properties.configuration.ingress.fqdn -o tsv)"
+          sh scripts/docker_smoke.sh "https://$fqdn" -
