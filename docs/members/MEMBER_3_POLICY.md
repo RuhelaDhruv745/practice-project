@@ -12,8 +12,8 @@ Name: <fill in>
 | Consumes | `contracts.models`, `contracts.enums`, `data/policies/*.yaml`, `data/synthetic/customers.csv` and `data/fixtures/scenarios.jsonl` (for tests) |
 
 ## Head start
-`policy_engine/config_loader.py` already loads and cross-checks all six policy files
-(`policy`, `segments`, `strategies`, `offers`, `reminders`, `blocked_terms`) with 19
+`policy_engine/config_loader.py` already loads and cross-checks the policy files
+(`policy`, `segments`, `strategies`, `offers`, `reminders`, `blocked_terms`, and `validation` since Sprint 2) with 19
 tests in `policy_engine/tests/test_config_loader.py`. Extend it; keep those tests green.
 
 ## Responsibilities
