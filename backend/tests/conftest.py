@@ -23,7 +23,11 @@ TEST_POLICY_VERSIONS = {"policy": "1.0", "segments": "1.0"}
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     db_file = tmp_path / "db" / "test.db"
-    return Settings(database_url=f"sqlite:///{db_file.as_posix()}", llm_provider="mock")
+    return Settings(
+        database_url=f"sqlite:///{db_file.as_posix()}",
+        llm_provider="mock",
+        outbox_path=(tmp_path / "outputs" / "outbox.jsonl").as_posix(),
+    )
 
 
 @pytest.fixture
@@ -38,10 +42,17 @@ def policy_engine() -> FakePolicyEngine:
 
 
 @pytest.fixture
-def app(policy_engine: FakePolicyEngine, settings: Settings) -> FastAPI:
+def generator() -> FakeDraftGenerator:
+    return FakeDraftGenerator()
+
+
+@pytest.fixture
+def app(
+    policy_engine: FakePolicyEngine, generator: FakeDraftGenerator, settings: Settings
+) -> FastAPI:
     return create_app(
         policy_engine,
-        FakeDraftGenerator(),
+        generator,
         settings,
         policy_versions=TEST_POLICY_VERSIONS,
     )

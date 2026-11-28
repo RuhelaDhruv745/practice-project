@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 DEFAULT_DATABASE_URL = "sqlite:///outputs/app.db"
+DEFAULT_OUTBOX_PATH = "outputs/outbox.jsonl"
 DEFAULT_LLM_PROVIDER = "anthropic"
 
 # Provider name -> environment variable holding its API key ("mock" needs none).
@@ -35,6 +36,8 @@ class Settings:
     llm_key_configured: bool = False
     cors_origins: tuple[str, ...] = field(default_factory=tuple)
     log_level: str = "INFO"
+    # Mock outbox JSONL export (no real delivery exists).
+    outbox_path: str = DEFAULT_OUTBOX_PATH
 
     def __post_init__(self) -> None:
         if self.llm_provider not in _PROVIDER_KEY_VARS:
@@ -63,4 +66,5 @@ class Settings:
             llm_key_configured=key_configured,
             cors_origins=origins,
             log_level=(env.get("LOG_LEVEL") or "INFO").strip().upper(),
+            outbox_path=(env.get("OUTBOX_PATH") or DEFAULT_OUTBOX_PATH).strip(),
         )

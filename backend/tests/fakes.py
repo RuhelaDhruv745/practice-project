@@ -40,7 +40,8 @@ class FakePolicyEngine:
 
     ``segments`` maps customer_id -> primary segment (absent = no segment).
     ``blocked`` maps customer_id -> block reasons for ``decide``.
-    ``validation_passes`` controls every ``validate`` result.
+    ``validation_passes`` controls ``validate`` for allowed decisions (tests may flip
+    it between calls); a blocked decision always fails with ``consent_gap``.
     """
 
     def __init__(
@@ -120,6 +121,19 @@ class FakePolicyEngine:
         self, draft: DraftContent, decision: PolicyDecision
     ) -> ValidationResult:
         self.calls.append(("validate", decision.customer_id))
+        if decision.status is DecisionStatus.BLOCKED:
+            return ValidationResult(
+                passed=False,
+                findings=[
+                    ValidationFinding(
+                        code=FindingCode.CONSENT_GAP,
+                        severity=Severity.BLOCKING,
+                        message="Fake: outreach is blocked by policy.",
+                    )
+                ],
+                checks_run=[FindingCode.CONSENT_GAP],
+                validator_version="fake-1",
+            )
         if self.validation_passes:
             return ValidationResult(
                 passed=True, checks_run=[], validator_version="fake-1"
@@ -147,7 +161,7 @@ class FakeDraftGenerator:
     def generate(self, facts: VerifiedFacts) -> GeneratedMessage:
         self.calls.append(facts)
         return GeneratedMessage(
-            message_id=f"MSG-{facts.customer_id}-1",
+            message_id=f"MSG-{facts.customer_id}-{len(self.calls)}",
             customer_id=facts.customer_id,
             draft=DraftContent(
                 subject="Thank you for staying with us",
