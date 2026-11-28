@@ -8,6 +8,10 @@ provider failure that survives that raises GenerationError immediately.
 
 The grounding pre-check is a cheap local signal, not approval: PolicyEngine.validate
 (Member 3) still checks every draft.
+
+An optional dev cache (``ai_engine.generation.cache``, opt-in via ``LLM_CACHE=1``)
+returns a previously accepted draft for identical (prompt version, provider, model,
+facts). The mock provider is never cached.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from datetime import UTC, datetime
 
 from pydantic import ValidationError
 
+from ai_engine.generation.cache import DraftCache, cache_from_env, cache_key
 from ai_engine.generation.prompt_builder import RETRY_NOTE, render_prompt
 from ai_engine.generation.providers import (
     LLMProvider,
@@ -82,6 +87,13 @@ def parse_draft(raw: str) -> DraftContent:
         ) from None
 
 
+class _FromEnv:
+    """Sentinel: read the cache setting from the process environment."""
+
+
+_FROM_ENV = _FromEnv()
+
+
 def _new_message_id() -> str:
     return f"msg-{uuid.uuid4().hex}"
 
@@ -100,9 +112,13 @@ class LLMDraftGenerator:
         prompt_version: str = PROMPT_VERSION,
         clock: Callable[[], datetime] = _utc_now,
         id_factory: Callable[[], str] = _new_message_id,
+        cache: DraftCache | None | _FromEnv = _FROM_ENV,
     ) -> None:
         self.provider = provider if provider is not None else provider_from_env()
         self.prompt_version = prompt_version
+        resolved = cache_from_env() if isinstance(cache, _FromEnv) else cache
+        # The mock is deterministic and free, so caching it would only hide changes.
+        self.cache = None if self.provider.name == "mock" else resolved
         self._clock = clock
         self._id_factory = id_factory
 
@@ -111,7 +127,51 @@ class LLMDraftGenerator:
         """``mock`` or ``live``, for the backend's health endpoint."""
         return "mock" if self.provider.name == "mock" else "live"
 
+    def _message(self, facts: VerifiedFacts, draft: DraftContent) -> GeneratedMessage:
+        return GeneratedMessage(
+            message_id=self._id_factory(),
+            customer_id=facts.customer_id,
+            draft=draft,
+            source="llm",
+            provider=self.provider.name,
+            model=self.provider.model,
+            prompt_version=self.prompt_version,
+            generated_at=self._clock(),
+        )
+
+    def _cache_key(self, facts: VerifiedFacts) -> str:
+        return cache_key(
+            prompt_version=self.prompt_version,
+            provider=self.provider.name,
+            model=self.provider.model,
+            facts=facts,
+        )
+
+    def _cached_draft(self, facts: VerifiedFacts) -> DraftContent | None:
+        if self.cache is None:
+            return None
+        draft = self.cache.get(self._cache_key(facts))
+        # Re-check grounding so a stale or hand-edited entry is never trusted blindly.
+        if draft is None or missing_required_facts(draft, facts):
+            return None
+        logger.info("cache hit for %s", facts.customer_id)
+        return draft
+
+    def _store(self, facts: VerifiedFacts, draft: DraftContent) -> None:
+        if self.cache is None:
+            return
+        self.cache.put(
+            self._cache_key(facts),
+            draft,
+            prompt_version=self.prompt_version,
+            provider=self.provider.name,
+            model=self.provider.model,
+        )
+
     def generate(self, facts: VerifiedFacts) -> GeneratedMessage:
+        cached = self._cached_draft(facts)
+        if cached is not None:
+            return self._message(facts, cached)
         system, user = render_prompt(facts, version=self.prompt_version)
         reason: str | None = None
         for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -145,16 +205,8 @@ class LLMDraftGenerator:
                     "attempt %d for %s rejected: %s", attempt, facts.customer_id, reason
                 )
                 continue
-            return GeneratedMessage(
-                message_id=self._id_factory(),
-                customer_id=facts.customer_id,
-                draft=draft,
-                source="llm",
-                provider=self.provider.name,
-                model=self.provider.model,
-                prompt_version=self.prompt_version,
-                generated_at=self._clock(),
-            )
+            self._store(facts, draft)
+            return self._message(facts, draft)
         raise GenerationError(
             f"no valid draft after {MAX_ATTEMPTS} attempts; last problem: {reason}"
         )
