@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 import yaml
 
-from src.config import DEFAULT_CONFIG_DIR, ConfigError, load_policy
+from policy_engine.config_loader import DEFAULT_CONFIG_DIR, ConfigError, load_policy
 
 Mutator = Callable[[dict[str, dict[str, Any]]], None]
 

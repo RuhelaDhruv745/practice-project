@@ -1,0 +1,28 @@
+# Secrets: never in an image (supply env at runtime)
+.env
+.env.*
+!.env.example
+
+# VCS, virtualenvs, caches
+.git
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+
+# Frontend build inputs/outputs handled inside its own stage
+node_modules
+**/node_modules
+frontend/dist
+
+# Test and runtime artefacts (mock outbox, audit, SQLite)
+coverage
+playwright-report
+test-results
+outputs
+*.db
+
+# Not needed at runtime
+.claude
+docs

@@ -15,3 +15,11 @@ outputs/
 
 # Personal Claude Code settings (.claude/settings.json IS committed)
 .claude/settings.local.json
+
+# Frontend and test artefacts, local databases
+node_modules/
+frontend/dist/
+*.db
+coverage/
+playwright-report/
+test-results/

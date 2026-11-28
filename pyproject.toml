@@ -1,9 +1,25 @@
+# Architect-owned. One Python environment for backend, policy_engine, ai_engine,
+# contracts and reviewer_ui; each module keeps its own requirements.txt.
+
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = [
+    "contracts/tests",
+    "policy_engine/tests",
+    "ai_engine/tests",
+    "backend/tests",
+    "reviewer_ui/tests",
+    "tests",
+]
 pythonpath = ["."]
+addopts = "--import-mode=importlib"
+markers = [
+    "integration: crosses module boundaries (tests/integration)",
+    "e2e: full workflow through the API (tests/e2e)",
+]
 
 [tool.ruff]
 target-version = "py313"
+extend-exclude = ["frontend"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

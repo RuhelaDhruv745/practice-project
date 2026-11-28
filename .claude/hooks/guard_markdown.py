@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT_FILES = {"readme.md", "notes.md", "claude.md"}
-FOLDERS = {"docs", ".claude"}
+FOLDERS = {"docs", ".claude", ".github"}
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
     print(
         "Blocked: do not create new .md files here. Put notes in NOTES.md, or in "
         "docs/ for longer documents. Allowed: README.md, NOTES.md, CLAUDE.md, "
-        "docs/ and .claude/.",
+        "docs/, .claude/ and .github/.",
         file=sys.stderr,
     )
     return 2
