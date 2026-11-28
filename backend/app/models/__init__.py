@@ -1,1 +1,15 @@
-"""SQLAlchemy ORM tables (Member 1). Design in docs/DATABASE_DESIGN.md."""
+"""ORM models: internal storage only; the API speaks contract models."""
+
+from backend.app.models.customer import (
+    ActivityRow,
+    BillingRecordRow,
+    CommunicationPreferenceRow,
+    CustomerRow,
+)
+
+__all__ = [
+    "ActivityRow",
+    "BillingRecordRow",
+    "CommunicationPreferenceRow",
+    "CustomerRow",
+]
