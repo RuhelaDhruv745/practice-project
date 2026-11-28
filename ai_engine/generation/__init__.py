@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ai_engine.generation.cache import DraftCache, cache_from_env, cache_key
 from ai_engine.generation.generator import (
     DraftParseError,
     LLMDraftGenerator,
@@ -21,6 +22,7 @@ from ai_engine.generation.providers import (
 
 __all__ = [
     "AnthropicProvider",
+    "DraftCache",
     "DraftParseError",
     "GroqProvider",
     "LLMDraftGenerator",
@@ -30,6 +32,8 @@ __all__ = [
     "ProviderConfigError",
     "ProviderError",
     "RetryPolicy",
+    "cache_from_env",
+    "cache_key",
     "parse_draft",
     "provider_from_env",
 ]
