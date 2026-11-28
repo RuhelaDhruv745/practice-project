@@ -34,13 +34,25 @@ in `docs/members/`, each with a startup prompt and completion-report template.
 ⚠ Fill in member names.
 
 ## 5. Worktrees
-Created from the merged baseline on `main` with `git worktree add` (see section 13).
-Local to the lead machine only. On separate laptops, each member clones and checks out
-their remote branch.
+✅ Created on 2026-11-28 with `git worktree add`, all five branches pushed to GitHub.
+Verified with `git worktree list`: every branch starts at the architecture commit
+`8092b50`, which is an ancestor of `main` (merged in PR #3 as `0615267`).
+
+| Member | Branch | Worktree (lead machine) |
+|---|---|---|
+| 1 Backend | `feature/backend` | `C:/Users/ASUS/team-backend` |
+| 2 AI/LLM | `feature/ai-engine` | `C:/Users/ASUS/team-ai` |
+| 3 Policy | `feature/policy-engine` | `C:/Users/ASUS/team-policy` |
+| 4 Frontend | `feature/frontend` | `C:/Users/ASUS/team-frontend` |
+| 5 DevOps/QA | `feature/devops-testing` | `C:/Users/ASUS/team-devops` |
+
+Worktrees are local to the lead machine only. On separate laptops, each member clones
+the repository and switches to their remote branch (section 13).
 
 ## 6. Git
-Baseline is on `chore/architecture-baseline` → PR to `main`. Step 1a (policy YAML and
-loader) is folded into the baseline; `feature/loyalty-assistant` retires after merge.
+✅ Baseline merged to `main` via PR #3 (merge commit `0615267`, CI green). Step 1a
+(policy YAML and loader) is folded into the baseline; the retired
+`feature/loyalty-assistant` branch was deleted after its merge.
 ⚠ Main branch protection (require PR + CI, no force-push) must be set by the repository
 owner on GitHub: Settings → Rules → Rulesets.
 
@@ -72,7 +84,7 @@ resources created. ⚠ Subscription, permissions and cost check still to do.
 Without keys, `LLM_PROVIDER=mock` keeps everything runnable and demoable.
 
 ## 12. Remaining manual steps
-1. Review and merge the baseline PR.
+1. ~~Review and merge the baseline PR.~~ Done (PR #3).
 2. Protect `main` on GitHub; invite all five collaborators.
 3. Fill member names in `docs/members/*.md`.
 4. Each member: clone or open their worktree, create `.venv`, create `.env` from the example.
